@@ -212,7 +212,6 @@ class SubRegex(ModifyManifestTextProcessor):
         text_in = data_entry[self.text_attribute]
 
         for regex_params in self.regex_params_list:
-
             text_out = re.sub(
                 pattern=regex_params["pattern"],
                 repl=regex_params["repl"],

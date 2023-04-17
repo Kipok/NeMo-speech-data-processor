@@ -28,10 +28,10 @@ MLS_URL = "https://dl.fbaipublicfiles.com/mls/mls_{language}.tar.gz"
 class CreateInitialManifestMLS(BaseParallelProcessor):
     """
     Downloads and unzips raw MLS data for the specified language, and creates an initial manifest using
-    the transcripts provided in the raw data. 
+    the transcripts provided in the raw data.
 
     Args:
-        language: the language of the data you wish to be downloaded. This will be used to format the 
+        language: the language of the data you wish to be downloaded. This will be used to format the
             URL from which we attempt to download the data.
         download_dir: the directory where the downloaded data will be saved.
         data_split: the data split for which the initial manifest will be created.
@@ -66,6 +66,7 @@ class CreateInitialManifestMLS(BaseParallelProcessor):
         copy the included test data (mainly useful for quick development or
         CI pipeline).
         """
+        self.download_dir.mkdir(parents=True, exist_ok=True)
         if self.use_test_data:
             try:
                 __TEST_DATA_ROOT = os.environ["TEST_DATA_ROOT"]
