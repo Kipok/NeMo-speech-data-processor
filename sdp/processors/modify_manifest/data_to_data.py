@@ -26,14 +26,14 @@ from nemo.utils import logging
 
 class InsIfASRInsertion(ModifyManifestTextProcessor):
     """
-    Class for processor that adds a substring to data[self.text_attribute] if it is
-    present at that location in data[self.pred_text_attribute].
+    Class for processor that adds a substring to data[self.text_key] if it is
+    present at that location in data[self.pred_text_key].
     It is useful if words are systematically missing from ground truth
     transcriptions.
 
     Args:
-        insert_words: list of strings that will be inserted into data[self.text_attribute] if
-            there is an insertion (containing only that string) in data[self.pred_text_attribute].
+        insert_words: list of strings that will be inserted into data[self.text_key] if
+            there is an insertion (containing only that string) in data[self.pred_text_key].
             Note: because data_to_data looks for an exact match in the insertion,
             we recommend including variations with different spaces in 'insert_words',
             e.g. [' nemo', 'nemo ', ' nemo '].
@@ -48,9 +48,9 @@ class InsIfASRInsertion(ModifyManifestTextProcessor):
     def _process_dataset_entry(self, data_entry) -> List:
         insert_word_counter = collections.defaultdict(int)
         for insert_word in self.insert_words:
-            if not insert_word in data_entry[self.pred_text_attribute]:
+            if not insert_word in data_entry[self.pred_text_key]:
                 break
-            orig_words, pred_words = data_entry[self.text_attribute], data_entry[self.pred_text_attribute]
+            orig_words, pred_words = data_entry[self.text_key], data_entry[self.pred_text_key]
             diff = get_diff_with_subs_grouped(orig_words, pred_words)
 
             if len(diff) > 0:  # ie if there are differences between text and pred_text
@@ -75,7 +75,7 @@ class InsIfASRInsertion(ModifyManifestTextProcessor):
                         raise ValueError(f"unexpected item in diff_entry: {diff_entry}")
 
                 new_sent = " ".join(new_sent.split())  # remove any extra spaces
-                data_entry[self.text_attribute] = new_sent
+                data_entry[self.text_key] = new_sent
 
         return [DataEntry(data=data_entry, metrics=insert_word_counter)]
 
@@ -92,18 +92,18 @@ class InsIfASRInsertion(ModifyManifestTextProcessor):
 
 class SubIfASRSubstitution(ModifyManifestTextProcessor):
     """
-    Class for processor that converts a substring in data[self.text_attribute] to a
-    substring in data[self.pred_text_attribute] if both are located in the same place
+    Class for processor that converts a substring in data[self.text_key] to a
+    substring in data[self.pred_text_key] if both are located in the same place
     (ie are part of a 'substitution' operation) and if the substrings
     correspond to key-value pairs in 'sub_words'.
     This is useful if words are systematically incorrect in ground truth
     transcriptions.
 
     Args:
-        sub_words: dictionary where a key is a string that might be in data[self.text_attribute]
-            and the value is the string that might be in data[self.pred_text_attribute]. If both
+        sub_words: dictionary where a key is a string that might be in data[self.text_key]
+            and the value is the string that might be in data[self.pred_text_key]. If both
             are located in the same place (ie are part of a 'substitution' operation)
-            then the key string will be converted to the value string in data[self.text_attribute].
+            then the key string will be converted to the value string in data[self.text_key].
 
             .. note::
                 data_to_data looks for exact string matches of substitutions, so
@@ -121,9 +121,9 @@ class SubIfASRSubstitution(ModifyManifestTextProcessor):
     def _process_dataset_entry(self, data_entry) -> List:
         sub_word_counter = collections.defaultdict(int)
         for original_word, new_word in self.sub_words.items():
-            if not original_word in data_entry[self.text_attribute]:
+            if not original_word in data_entry[self.text_key]:
                 break
-            orig_words, pred_words = data_entry[self.text_attribute], data_entry[self.pred_text_attribute]
+            orig_words, pred_words = data_entry[self.text_key], data_entry[self.pred_text_key]
             diff = get_diff_with_subs_grouped(orig_words, pred_words)
 
             if len(diff) > 0:  # ie if there are differences between text and pred_text
@@ -154,7 +154,7 @@ class SubIfASRSubstitution(ModifyManifestTextProcessor):
                         raise ValueError(f"unexpected item in diff_entry: {diff_entry}")
 
                 new_sent = add_start_end_spaces(new_sent)
-                data_entry[self.text_attribute] = new_sent
+                data_entry[self.text_key] = new_sent
 
         return [DataEntry(data=data_entry, metrics=sub_word_counter)]
 
@@ -171,7 +171,7 @@ class SubIfASRSubstitution(ModifyManifestTextProcessor):
 
 class SubMakeLowercase(ModifyManifestTextProcessor):
     """
-    Class to convert data[self.text_attribute] to lowercase by calling '.lower()' on it.
+    Class to convert data[self.text_key] to lowercase by calling '.lower()' on it.
     """
 
     def __init__(
@@ -180,7 +180,7 @@ class SubMakeLowercase(ModifyManifestTextProcessor):
         super().__init__(**kwargs)
 
     def _process_dataset_entry(self, data_entry) -> List:
-        data_entry[self.text_attribute] = data_entry[self.text_attribute].lower()
+        data_entry[self.text_key] = data_entry[self.text_key].lower()
         return [DataEntry(data=data_entry)]
 
     def finalize(self, metrics):
@@ -194,9 +194,11 @@ class SubRegex(ModifyManifestTextProcessor):
     by key-value pairs in regex_to_sub.
 
     Args:
-        regex_to_sub: dictionary where the keys are regex patterns that might
-            be in data[self.text_attribute], and the values are the strings that will replace
-            the regex matches if they are found.
+        regex_params_list: list of dicts. Each dict must contain a 'pattern' and 'repl' key, 
+            and optionally a 'count' key (by default, 'count' will be 0).
+            This processor will go through the list in order, and apply a re.sub operation on
+            the input text in data_entry[self.text_key], feeding in the specified 'pattern', 'repl'
+            and 'count' parameters to re.sub.
     """
 
     def __init__(
@@ -204,18 +206,29 @@ class SubRegex(ModifyManifestTextProcessor):
     ):
         super().__init__(**kwargs)
         self.regex_params_list = regex_params_list
-        # TODO: verify regex_params have "pattern" and "repl" keys
+
+        # verify all dicts in regex_params_list have "pattern" and "repl" keys
+        for regex_params_dict in self.regex_params_list:
+            if not "pattern" in regex_params_dict.keys():
+                raise ValueError(
+                    f"Need to have key 'pattern' in all entries of `regex_params_list`: {self.regex_params_list}"
+                )
+            if not "repl" in regex_params_dict.keys():
+                raise ValueError(
+                    f"Need to have key 'repl' in all entries of `regex_params_list`: {self.regex_params_list}"
+                )
 
     def _process_dataset_entry(self, data_entry) -> List:
         replace_word_counter = collections.defaultdict(int)
 
-        text_in = data_entry[self.text_attribute]
+        text_in = data_entry[self.text_key]
 
         for regex_params in self.regex_params_list:
             text_out = re.sub(
                 pattern=regex_params["pattern"],
                 repl=regex_params["repl"],
                 string=text_in,
+                # note: this count param is the maximum number of pattern occurrences to be replaced.
                 count=regex_params.get("count", 0),
             )
 
@@ -223,7 +236,7 @@ class SubRegex(ModifyManifestTextProcessor):
                 replace_word_counter[regex_params["pattern"]] += 1
             text_in = text_out
 
-        data_entry[self.text_attribute] = text_out
+        data_entry[self.text_key] = text_out
 
         return [DataEntry(data=data_entry, metrics=replace_word_counter)]
 
@@ -232,9 +245,8 @@ class SubRegex(ModifyManifestTextProcessor):
         for counter in metrics:
             for word, count in counter.items():
                 total_counter[word] += count
-        logging.info("Some of the words matching the regex that were substituted")
+        logging.info("Number of utterances which applied substitutions for the following patterns:")
         total_counter_sorted = dict(sorted(total_counter.items(), key=lambda x: x[1], reverse=True))
         for word, count in total_counter_sorted.items():
-            if count > 1:
-                logging.info(f"{word} {count}")
+            logging.info(f"{word} {count}")
         super().finalize(metrics)
