@@ -13,9 +13,15 @@
 # limitations under the License.
 
 import json
+import os
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+import torch
+from nemo.collections.nlp.models import PunctuationCapitalizationModel
+
+from sdp.logging import logger
 from sdp.processors.base_processor import BaseProcessor
 
 
@@ -28,20 +34,7 @@ def load_manifest(manifest: Path) -> List[Dict[str, Union[str, float]]]:
     return result
 
 
-class PCInference(BaseProcessor):
-    """
-    Processor which will run a text-based punctuation and capitalization (PC) model on
-    the text in the field input_text_field, and save it in the text field output_text_field.
-
-    Args:
-        input_text_field: the text field that will be the input to the PC model.
-        output_text_field: the text field where the output of the PC model will be saved.
-        batch_size: the batch sized used by the PC model.
-        device: the device used by the PC model.
-        pretrained_name: the pretrained_name of the PC model.
-        model_path: the model path to the PC model.
-    """
-
+class AddPCPred(BaseProcessor):
     def __init__(
         self,
         input_text_field: str,
@@ -68,8 +61,6 @@ class PCInference(BaseProcessor):
             raise ValueError("pretrained_name and model_path cannot both be not None")
 
     def process(self):
-        import torch
-        from nemo.collections.nlp.models import PunctuationCapitalizationModel
 
         if self.pretrained_name:
             model = PunctuationCapitalizationModel.from_pretrained(self.pretrained_name)
@@ -90,9 +81,17 @@ class PCInference(BaseProcessor):
         for item in manifest:
             texts.append(item[self.input_text_field])
 
-        processed_texts = model.add_punctuation_capitalization(texts, batch_size=self.batch_size)
+        processed_texts = model.add_punctuation_capitalization(
+            texts,
+            batch_size=self.batch_size,
+            # max_seq_length=args.max_seq_length,
+            # step=args.step,
+            # margin=args.margin,
+            # return_labels=args.save_labels_instead_of_text,
+        )
         Path(self.output_manifest_file).parent.mkdir(exist_ok=True, parents=True)
         with Path(self.output_manifest_file).open('w') as f:
             for item, t in zip(manifest, processed_texts):
                 item[self.output_text_field] = t
                 f.write(json.dumps(item) + '\n')
+

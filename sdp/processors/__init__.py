@@ -43,6 +43,7 @@ from sdp.processors.modify_manifest.data_to_dropbool import (
     DropLowWordMatchRate,
     DropNonAlphabet,
 )
+from sdp.processors.modify_manifest.make_letters_uppercase_after_period import MakeLettersUppercaseAfterPeriod
 from sdp.processors.pc_inference import PCInference
 from sdp.processors.restore_pc_for_mls import RestorePCForMLS
 from sdp.processors.sort_manifest import SortManifest

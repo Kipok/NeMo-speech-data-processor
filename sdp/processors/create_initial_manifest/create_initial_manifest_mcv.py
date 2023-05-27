@@ -34,13 +34,13 @@ import csv
 import glob
 import os
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import sox
 from sox import Transformer
-from nemo.utils import logging
 from tqdm.contrib.concurrent import process_map
 
+from sdp.logging import logger
 from sdp.processors.base_processor import BaseParallelProcessor, DataEntry
 from sdp.utils.common import extract_archive
 
@@ -85,16 +85,22 @@ class CreateInitialManifestMCV(BaseParallelProcessor):
 
     def prepare(self):
         """Extracting data (unless already done)."""
-
-        tar_gz_files = glob.glob(str(self.raw_data_dir) + "/*.tar.gz")
-
-        if not tar_gz_files:
-            raise RuntimeError(f"Did not find any file matching {self.raw_data_dir}/*.tar.gz")
-
-        elif len(tar_gz_files) > 1:
-            raise RuntimeError(f"Expecting exactly one *.tar.gz file in directory {self.raw_data_dir}")
+        os.makedirs(self.raw_data_dir, exist_ok=True)
 
         if not self.already_extracted:
+            tar_gz_files = glob.glob(str(self.raw_data_dir) + f"/*{self.language_id}.tar.gz")
+            if not tar_gz_files:
+                raise RuntimeError(
+                    f"Did not find any file matching {self.raw_data_dir}/*.tar.gz. "
+                    "For MCV dataset we cannot automatically download the data, so "
+                    "make sure to get the data from https://commonvoice.mozilla.org/ "
+                    "and put it in the 'raw_data_dir' folder."
+                )
+            elif len(tar_gz_files) > 1:
+                raise RuntimeError(
+                    f"Expecting exactly one *{self.language_id}.tar.gz file in directory {self.raw_data_dir}"
+                )
+
             data_folder = extract_archive(tar_gz_files[0], self.extract_archive_dir)
             self.transcription_file = Path(data_folder)
         else:

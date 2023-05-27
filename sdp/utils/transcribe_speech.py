@@ -22,8 +22,6 @@ from typing import Optional
 
 import pytorch_lightning as pl
 import torch
-from omegaconf import OmegaConf
-
 from nemo.collections.asr.metrics.rnnt_wer import RNNTDecodingConfig
 from nemo.collections.asr.metrics.wer import CTCDecodingConfig
 from nemo.collections.asr.models import ASRModel
@@ -31,8 +29,9 @@ from nemo.collections.asr.models.ctc_models import EncDecCTCModel
 from nemo.collections.asr.parts.utils.transcribe_utils import transcribe_partial_audio
 from nemo.collections.common.tokenizers.aggregate_tokenizer import AggregateTokenizer
 from nemo.core.config import hydra_runner
-from nemo.utils import logging, model_utils
+from omegaconf import OmegaConf
 
+from sdp.logging import logger, model_utils
 
 """
 Transcribe audio file on a single CPU/GPU. Useful for transcription of moderate amounts of audio data.
@@ -115,7 +114,7 @@ class TranscriptionConfig:
 
 @hydra_runner(config_name="TranscriptionConfig", schema=TranscriptionConfig)
 def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
-    logging.info(f'Hydra config: {OmegaConf.to_yaml(cfg)}')
+    logger.info(f'Hydra config: {OmegaConf.to_yaml(cfg)}')
 
     if is_dataclass(cfg):
         cfg = OmegaConf.structured(cfg)
@@ -145,7 +144,7 @@ def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
         model_cfg = ASRModel.restore_from(restore_path=cfg.model_path, return_config=True)
         classpath = model_cfg.target  # original class path
         imported_class = model_utils.import_class_by_path(classpath)  # type: ASRModel
-        logging.info(f"Restoring model : {imported_class.__name__}")
+        logger.info(f"Restoring model : {imported_class.__name__}")
         asr_model = imported_class.restore_from(
             restore_path=cfg.model_path, map_location=map_location
         )  # type: ASRModel
@@ -184,7 +183,7 @@ def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
         # get filenames from manifest
         filepaths = []
         if os.stat(cfg.dataset_manifest).st_size == 0:
-            logging.error(f"The input dataset_manifest {cfg.dataset_manifest} is empty. Exiting!")
+            logger.error(f"The input dataset_manifest {cfg.dataset_manifest} is empty. Exiting!")
             return None
 
         manifest_dir = Path(cfg.dataset_manifest).parent
@@ -202,11 +201,11 @@ def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
                 filepaths.append(str(audio_file.absolute()))
         partial_audio = all(has_two_fields)
 
-    logging.info(f"\nTranscribing {len(filepaths)} files...\n")
+    logger.info(f"\nTranscribing {len(filepaths)} files...\n")
 
     # setup AMP (optional)
     if cfg.amp and torch.cuda.is_available() and hasattr(torch.cuda, 'amp') and hasattr(torch.cuda.amp, 'autocast'):
-        logging.info("AMP enabled!\n")
+        logger.info("AMP enabled!\n")
         autocast = torch.cuda.amp.autocast
     else:
 
@@ -226,7 +225,7 @@ def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
 
     # if transcripts should not be overwritten, and already exists, skip re-transcription step and return
     if not cfg.overwrite_transcripts and os.path.exists(cfg.output_filename):
-        logging.info(
+        logger.info(
             f"Previous transcripts found at {cfg.output_filename}, and flag `overwrite_transcripts`"
             f"is {cfg.overwrite_transcripts}. Returning without re-transcribing text."
         )
@@ -247,7 +246,7 @@ def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
                         return_hypotheses=return_hypotheses,
                     )
                 else:
-                    logging.warning(
+                    logger.warning(
                         "RNNT models do not support transcribe partial audio for now. Transcribing full audio."
                     )
                     transcriptions = asr_model.transcribe(
@@ -264,9 +263,9 @@ def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
                     return_hypotheses=return_hypotheses,
                 )
 
-    logging.info(f"Finished transcribing {len(filepaths)} files !")
+    logger.info(f"Finished transcribing {len(filepaths)} files !")
 
-    logging.info(f"Writing transcriptions into file: {cfg.output_filename}")
+    logger.info(f"Writing transcriptions into file: {cfg.output_filename}")
 
     # if transcriptions form a tuple (from RNNT), extract just "best" hypothesis
     if type(transcriptions) == tuple and len(transcriptions) == 2:
@@ -275,7 +274,7 @@ def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
     # write audio transcriptions
 
     if cfg.append_pred:
-        logging.info(f'Transcripts will be written in "{cfg.output_filename}" file')
+        logger.info(f'Transcripts will be written in "{cfg.output_filename}" file')
         if cfg.pred_name_postfix is not None:
             pred_by_model_name = cfg.pred_name_postfix
         else:
@@ -302,7 +301,7 @@ def main(cfg: TranscriptionConfig) -> TranscriptionConfig:
                         item['pred_lang_chars'] = transcriptions[idx].langs_chars
                     f.write(json.dumps(item) + "\n")
 
-    logging.info("Finished writing predictions !")
+    logger.info("Finished writing predictions !")
     return cfg
 
 

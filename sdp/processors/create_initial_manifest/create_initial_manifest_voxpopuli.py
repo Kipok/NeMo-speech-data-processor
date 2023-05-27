@@ -12,20 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import string
+import os
 import re
-import os
-import subprocess
-from pathlib import Path
-import os
+import string
 import subprocess
 from pathlib import Path
 from typing import Optional
 
 import sox
-from nemo.utils import logging
 from sox import Transformer
 
+from sdp.logging import logger
 from sdp.processors.base_processor import BaseParallelProcessor, DataEntry
 from sdp.utils.common import extract_archive
 
@@ -134,25 +131,25 @@ class CreateInitialManifestVoxpopuli(BaseParallelProcessor):
 
     def prepare(self):
         """Downloading data (unless already done)"""
+        os.makedirs(self.raw_data_dir, exist_ok=True)
 
         if not (self.raw_data_dir / "transcribed_data").exists():
-
             # TODO: some kind of isolated environment?
             if not os.path.exists(self.raw_data_dir / 'voxpopuli'):
-                logging.info("Downloading voxpopuli and installing requirements")
+                logger.info("Downloading voxpopuli and installing requirements")
                 subprocess.run(f"git clone {VOXPOPULI_URL} {self.raw_data_dir / 'voxpopuli'}", check=True, shell=True)
                 subprocess.run(
                     f"pip install -r {self.raw_data_dir / 'voxpopuli' / 'requirements.txt'}", check=True, shell=True
                 )
             if not os.path.exists(self.raw_data_dir / 'raw_audios'):
-                logging.info("Downloading raw audios")
+                logger.info("Downloading raw audios")
                 subprocess.run(
                     f"cd {self.raw_data_dir / 'voxpopuli'} && python -m voxpopuli.download_audios --root {self.raw_data_dir} --subset asr",
                     check=True,
                     shell=True,
                 )
             if not os.path.exists(self.raw_data_dir / 'transcribed_data' / self.language_id):
-                logging.info("Segmenting and transcribing the data")
+                logger.info("Segmenting and transcribing the data")
                 subprocess.run(
                     f"cd {self.raw_data_dir / 'voxpopuli'} && python -m voxpopuli.get_asr_data  --root {self.raw_data_dir} --lang {self.language_id}",
                     check=True,
@@ -178,7 +175,7 @@ class CreateInitialManifestVoxpopuli(BaseParallelProcessor):
             try:
                 transcript_text = restore_pc(raw_text.split(), norm_text.split())
             except:
-                logging.warning("Failed to restore punctuation! Skipping utterance")
+                logger.warning("Failed to restore punctuation! Skipping utterance")
                 return []
         else:
             transcript_text = norm_text.strip()
@@ -195,9 +192,7 @@ class CreateInitialManifestVoxpopuli(BaseParallelProcessor):
         data = {
             "audio_filepath": tgt_wav_path,
             "duration": float(sox.file_info.duration(tgt_wav_path)),
-            # TODO: !@#!@#!@#!
             "text": transcript_text,
-            "text": norm_text,
             "provided_norm_text": norm_text,
             "raw_text": raw_text,
             "spk_id": spk_id,

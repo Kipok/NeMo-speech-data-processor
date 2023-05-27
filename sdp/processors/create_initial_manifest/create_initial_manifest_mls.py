@@ -16,12 +16,12 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from nemo.utils import logging
-
 import sox
+from sox import Transformer
+
+from sdp.logging import logger
 from sdp.processors.base_processor import BaseParallelProcessor, DataEntry
 from sdp.utils.common import download_file, extract_archive
-from sox import Transformer
 
 MLS_URL = "https://dl.fbaipublicfiles.com/mls/mls_{language}.tar.gz"
 
@@ -55,6 +55,8 @@ class CreateInitialManifestMLS(BaseParallelProcessor):
 
     def prepare(self):
         """Downloading and extracting data (unless already done)."""
+        os.makedirs(self.raw_data_dir, exist_ok=True)
+
         url = MLS_URL.format(language=self.language)
 
         if not (self.raw_data_dir / f"mls_{self.language}.tar.gz").exists():

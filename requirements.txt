@@ -1,2 +1,6 @@
 diff_match_patch
+sox
+wget
+joblib
+click
 # additionally https://github.com/NVIDIA/NeMo is required

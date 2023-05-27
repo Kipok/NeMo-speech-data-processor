@@ -1,0 +1,56 @@
+processors_to_run: all
+data_split: ???
+workspace_dir: ???
+final_manifest: ${workspace_dir}/${data_split}_manifest.json
+
+processors:
+  - _target_: sdp.processors.CreateInitialManifestVoxpopuli
+    output_manifest_file: ${workspace_dir}/${data_split}_manifest0.json
+    language_id: it
+    raw_data_dir: ${workspace_dir}/raw_data
+    resampled_audio_dir: ${workspace_dir}/${data_split}/audio
+    data_split: ${data_split}
+
+  - _target_: sdp.processors.SubRegex
+    regex_params_list:
+      - {"pattern": "!", "repl": "."}
+      - {"pattern": "…", "repl": "."}
+      - {"pattern": "’", "repl": "'"}
+      - {"pattern": '[!\":\(\)“”;]', "repl": ''}
+      - {"pattern": "[-/]", "repl": " "}
+      # note that we exclude î and ó - according to wikipedia they are very
+      # rarely used in modern italian. So it's safer to drop them, as they
+      # often represent other languages (e.g., french or spanish, most often
+      # in names), rather than actual italian
+      - {"pattern": "î", "repl": "i"}
+      - {"pattern": "ó", "repl": "o"}
+      - {"pattern": "Î", "repl": "I"}
+      - {"pattern": "Ó", "repl": "O"}
+      # P&C pipeline adds a lot of quotation marks that we want to remove
+      - {"pattern": "' ", "repl": " "}
+      - {"pattern": " '", "repl": " "}
+      # Fixing any obvious errors, such as ? followed by .
+      - {"pattern": '\? \.', "repl": "?"}
+      - {"pattern": '\. \?', "repl": "."}
+    test_cases:
+      - {input: {text: "Wow!"}, output: {text: "Wow."}}
+
+  - _target_: sdp.processors.DropNonAlphabet
+    alphabet: ".,? 'abcdefghijklmnopqrstuvwxyzàèéìíòùúABCDEFGHIJKLMNOPQRSTUVWXYZÀÈÉÌÍÒÙÚ"
+    test_cases:
+      - {input: {text: "test тест 测试"}, output: null}
+      - {input: {text: "test"}, output: {text: "test"}}
+
+  - _target_: sdp.processors.DropHighLowDuration
+    high_duration_threshold: 999
+    low_duration_threshold: 1.5
+
+  - _target_: sdp.processors.ChangeToRelativePath
+    base_dir: ${workspace_dir}
+
+  - _target_: sdp.processors.WriteManifest
+    output_manifest_file: ${workspace_dir}/${data_split}_manifest.json
+    fields_to_save:
+      - audio_filepath
+      - text
+      - duration
