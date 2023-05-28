@@ -13,16 +13,96 @@
 # limitations under the License.
 
 import os
+import re
+import string
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 import sox
 from sox import Transformer
 
 from sdp.logging import logger
 from sdp.processors.base_processor import BaseParallelProcessor, DataEntry
+from sdp.utils.common import extract_archive
 
 VOXPOPULI_URL = "https://github.com/facebookresearch/voxpopuli"
+
+
+def is_same(orig_word, norm_word):
+    # word is the same, except last symbol, which could indicate punctuation
+    if orig_word[-1] in string.punctuation and orig_word[:-1].lower() == norm_word.lower():
+        return True, 1
+    # word is the same, except last symbol, which could indicate punctuation
+    # (but by mistake it's been put in norm text)
+    if norm_word[-1] in string.punctuation and norm_word[:-1].lower() == orig_word.lower():
+        return True, 0
+    # word is the same, but casing could be different
+    if orig_word.lower() == norm_word.lower():
+        return True, 1
+    return False, None
+
+
+def restore_pc(orig_words_list, norm_words_list):
+    # copy so not to corrupt
+    # merging any commas and dots between numbers right away to simplify logic below
+    orig_text = list([re.sub(r'(\d)[\.,](\d)', r"\1\2", word) for word in orig_words_list])
+    norm_text = list(norm_words_list)
+    # to simplify logic below, so that we can assume last word always matches
+    orig_text.append("end_text")
+    norm_text.append("end_text")
+
+    idx_orig = 0
+    idx_norm = 0
+    merged_text = []
+    while idx_orig < len(orig_text) and idx_norm < len(norm_text):
+        same, is_orig = is_same(orig_text[idx_orig], norm_text[idx_norm])
+        if same:
+            merged_text.append(orig_text[idx_orig] if is_orig else norm_text[idx_norm])
+            idx_orig += 1
+            idx_norm += 1
+            continue
+
+        # checking if first letter is a number, but the whole word is not - that happens
+        # on typos like 37a which should really be 37 a. So fixing those
+        # another case is for number + punctuation, like 2017, - handling separately
+        # another case is for numbers separated by comma, like this "1,5". Those are spelled out
+        # separately in normalized form, so just removing the comma here
+        add_punct = ""
+        if orig_text[idx_orig][0].isdigit() and not orig_text[idx_orig].isdigit():
+            number, word = re.split('(\d+)', orig_text[idx_orig])[1:]
+            orig_text[idx_orig] = number
+            if word in string.punctuation:
+                add_punct = word
+            else:
+                orig_text.insert(idx_orig + 1, word)
+
+        # another annoying case is if typo ends with number like here "dell'11"
+        # same logic, but need to go back to the first check, so doing "continue" below
+        if orig_text[idx_orig][-1].isdigit() and not orig_text[idx_orig].isdigit():
+            word, number = re.split('(\d+)', orig_text[idx_orig])[:-1]
+            orig_text[idx_orig] = word
+            orig_text.insert(idx_orig + 1, number)
+            continue
+
+        # word is different, but original is a number - take from normalized in this case until
+        # get same word again (as number might be represented with multiple words)
+        # also handling case for number + punctuation
+        while orig_text[idx_orig].isdigit():
+            idx_orig += 1
+
+        while idx_norm < len(norm_text) and not is_same(orig_text[idx_orig], norm_text[idx_norm])[0]:
+            merged_text.append(norm_text[idx_norm])
+            idx_norm += 1
+
+        # if there is any trailing punctuation from last digit, let's add it
+        merged_text[-1] = merged_text[-1] + add_punct
+
+    if idx_norm != len(norm_text):
+        print(idx_orig, idx_norm, len(orig_text), len(norm_text), orig_text, norm_text, merged_text)
+        raise RuntimeError("Something went wrong during merging")
+
+    return " ".join(merged_text[:-1])  # removing end_text token
 
 
 class CreateInitialManifestVoxpopuli(BaseParallelProcessor):
@@ -91,7 +171,14 @@ class CreateInitialManifestVoxpopuli(BaseParallelProcessor):
             raise RuntimeError(f"have more/less than 7 tabs in line {data_entry}")
 
         utt_id, raw_text, norm_text, spk_id, _, gender, is_gold_transcript, accent = data_entry.split("\t")
-        transcript_text = norm_text.strip()
+        if self.restore_pc:
+            try:
+                transcript_text = restore_pc(raw_text.split(), norm_text.split())
+            except:
+                logger.warning("Failed to restore punctuation! Skipping utterance")
+                return []
+        else:
+            transcript_text = norm_text.strip()
         year = utt_id[:4]
 
         src_flac_path = os.path.join(self.raw_data_dir, "transcribed_data", self.language_id, year, utt_id + ".ogg")

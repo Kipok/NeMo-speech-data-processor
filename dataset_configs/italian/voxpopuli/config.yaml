@@ -13,11 +13,10 @@ processors:
 
   - _target_: sdp.processors.NormalizeFromNonPCTextVoxpopuli
     test_cases:
-      - {input: {raw_text: "¿So, it's ¿ 62.3 Abc Abc?"}, output: {text: "Wow."}}
-        raw_text = "¿So, it's ¿ 62.3 Abc Abc?"
-        norm_text = "so it's six two point three abc abc;"
-
-        transcript_text = restore_pc(raw_text, norm_text)
+      - {input: {text: "¿So, it's ¿62.3 Abc Abc?",
+                 provided_norm_text: "so it's six two point three abc abc"},
+         output: {text: "¿So, it's ¿six two point three Abc Abc?",
+                  provided_norm_text: "so it's six two point three abc abc"}}
 
   - _target_: sdp.processors.SubRegex
     regex_params_list:

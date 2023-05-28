@@ -23,7 +23,6 @@ from sdp.processors.modify_manifest.common import (
     DuplicateFields,
     RenameFields,
     SplitOnFixedDuration,
-    RestorePCForMLS,
     WriteManifest,
 )
 from sdp.processors.modify_manifest.data_to_data import (
@@ -49,3 +48,4 @@ from sdp.processors.modify_manifest.make_letters_uppercase_after_period import M
 from sdp.processors.modify_manifest.change_pc_fields import ChangePCFields
 from sdp.processors.nemo.pc_inference import PCInference
 from sdp.processors.datasets.mls.restore_pc import RestorePCForMLS
+from sdp.processors.datasets.voxpopuli.normalize_from_non_pc_text import NormalizeFromNonPCTextVoxpopuli
