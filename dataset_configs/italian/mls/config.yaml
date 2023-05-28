@@ -52,7 +52,7 @@ processors:
     rename_fields:
       "text": "original_dataset_text"
 
-  - _target_: dataset_configs.italian.mls.unique_processors.change_pc_fields.ChangePCFields
+  - _target_: sdp.processors.ChangePCFields
 
   # bunch of strings we map to spaces
   - _target_: sdp.processors.SubRegex
@@ -93,22 +93,19 @@ processors:
     - {"pattern": "!", "repl": "."}
     - {"pattern": "…", "repl": "."}
     - {"pattern": "’", "repl": "'"}
-    - {"pattern": '[!\":\(\)“”;]', "repl": ''}
+    - {"pattern": '[\":\(\)“”;]', "repl": ''}
     - {"pattern": "[-/]", "repl": " "}
     # note that we exclude î and ó - according to wikipedia they are very
-    # rarely used in modern italian. So it's safer to drop them, as they
+    # rarely used in modern italian. So it's safer to replace them, as they
     # often represent other languages (e.g., french or spanish, most often
     # in names), rather than actual italian
     - {"pattern": "î", "repl": "i"}
     - {"pattern": "ó", "repl": "o"}
     - {"pattern": "Î", "repl": "I"}
     - {"pattern": "Ó", "repl": "O"}
-    # P&C pipeline adds a lot of quotation marks that we want to remove
-    - {"pattern": "' ", "repl": " "}
-    - {"pattern": " '", "repl": " "}
     # Fixing any obvious errors, such as ? followed by .
-    - {"pattern": '\? \.', "repl": "?"}
-    - {"pattern": '\. \?', "repl": "."}
+    - {"pattern": '\?\.', "repl": "?"}
+    - {"pattern": '\.\?', "repl": "."}
     test_cases:
       - {input: {text: "Wow!"}, output: {text: "Wow."}}
 

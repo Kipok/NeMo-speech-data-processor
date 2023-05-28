@@ -22,7 +22,6 @@ from glob import glob
 from pathlib import Path
 from typing import Optional
 
-import regex
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
@@ -294,7 +293,7 @@ def split_text_into_sentences(text: str):
     # Read and split transcript by utterance (roughly, sentences)
     split_pattern = rf"(?<!\w\.\w.)(?<![A-Z{upper_case_unicode}][a-z{lower_case_unicode}]+\.)(?<![A-Z{upper_case_unicode}]\.)(?<=\.|\?|\!|\.”|\?”\!”)\s(?![0-9]+[a-z]*\.)"
 
-    sentences = regex.split(split_pattern, text)
+    sentences = re.split(split_pattern, text)
     return sentences
 
 

@@ -12,15 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from sdp.run_processors import run_processors
+import sys
 
 import hydra
 
+from sdp.run_processors import run_processors
 
-@hydra.main()
+
+@hydra.main(version_base=None)
 def main(cfg):
     run_processors(cfg)
 
 
 if __name__ == "__main__":
+    # hacking the arguments to always disable hydra's output
+    # TODO: maybe better to copy-paste hydra_runner from nemo if there are
+    #    any problems with this approach
+    sys.argv.extend(
+        ["hydra.run.dir=.", "hydra.output_subdir=null", "hydra/job_logging=none", "hydra/hydra_logging=none"]
+    )
     main()

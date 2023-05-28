@@ -63,7 +63,7 @@ processors:
       - {input: {provided_norm_text: "  "}, output: null}
       - {input: {provided_norm_text: "abcdef"}, output: {provided_norm_text: "abcdef"}}
 
-  - _target_: dataset_configs.spanish_pc.voxpopuli.unique_processors.normalize_from_non_pc_text.NormalizeFromNonPCText
+  - _target_: sdp.processors.NormalizeFromNonPCTextVoxpopuli
     input_manifest_file: "${workspace_dir}/manifests/${data_split}_drop_empty_norm.json"
     output_manifest_file: "${workspace_dir}/manifests/${data_split}_normalized.json"
 

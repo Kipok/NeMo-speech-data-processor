@@ -112,7 +112,8 @@ def restore_pc(orig_words, norm_words):
     return " ".join(merged_text[:-1])  # removing end_text token
 
 
-class NormalizeFromNonPCText(BaseParallelProcessor):
+class NormalizeFromNonPCTextVoxpopuli(BaseParallelProcessor):
+    """Tries to restore puncutation and capitalization from the unnormalized text version."""
     def __init__(
         self, **kwargs,
     ):

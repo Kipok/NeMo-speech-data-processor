@@ -11,6 +11,14 @@ processors:
     resampled_audio_dir: ${workspace_dir}/${data_split}/audio
     data_split: ${data_split}
 
+  - _target_: sdp.processors.NormalizeFromNonPCTextVoxpopuli
+    test_cases:
+      - {input: {raw_text: "¿So, it's ¿ 62.3 Abc Abc?"}, output: {text: "Wow."}}
+        raw_text = "¿So, it's ¿ 62.3 Abc Abc?"
+        norm_text = "so it's six two point three abc abc;"
+
+        transcript_text = restore_pc(raw_text, norm_text)
+
   - _target_: sdp.processors.SubRegex
     regex_params_list:
       - {"pattern": "!", "repl": "."}
@@ -26,9 +34,6 @@ processors:
       - {"pattern": "ó", "repl": "o"}
       - {"pattern": "Î", "repl": "I"}
       - {"pattern": "Ó", "repl": "O"}
-      # P&C pipeline adds a lot of quotation marks that we want to remove
-      - {"pattern": "' ", "repl": " "}
-      - {"pattern": " '", "repl": " "}
       # Fixing any obvious errors, such as ? followed by .
       - {"pattern": '\? \.', "repl": "?"}
       - {"pattern": '\. \?', "repl": "."}

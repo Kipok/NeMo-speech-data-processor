@@ -17,7 +17,7 @@ processors:
       - {"pattern": "!", "repl": "."}
       - {"pattern": "…", "repl": "."}
       - {"pattern": "’", "repl": "'"}
-      - {"pattern": '[!\":\(\)“”;]', "repl": ''}
+      - {"pattern": '[\":\(\)“”;]', "repl": ''}
       - {"pattern": "[-/]", "repl": " "}
       # note that we exclude î and ó - according to wikipedia they are very
       # rarely used in modern italian. So it's safer to replace them, as they
