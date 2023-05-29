@@ -106,11 +106,11 @@ processors:
 
   - _target_: sdp.processors.SubRegex
     regex_params_list:
-      - {"pattern": '[\.\-\‐\‑\–\—\―\"\$\&]', "repl": " "} 
-      - {"pattern": "['']", "repl": " "} 
-      - {"pattern": '[\,\,\:\=\?\_\`\{\|\}\~\¨\ª]', "repl": " "} 
-      - {"pattern": '[\«\°\´\·\»\¿\‘\’\“\”\„\…\‧\‹\›\≪\≫\!]', "repl": " "} 
-      - {"pattern": '[\:\;\`\ʻ\ː\‘\’\“\→\"\%\‘\”\�\ʽ\ʿ]', "repl": " "} 
+      - {"pattern": '[\.\-\‐\‑\–\—\―\"\$\&]', "repl": " "}
+      - {"pattern": "['']", "repl": " "}
+      - {"pattern": '[\,\,\:\=\?\_\`\{\|\}\~\¨\ª]', "repl": " "}
+      - {"pattern": '[\«\°\´\·\»\¿\‘\’\“\”\„\…\‧\‹\›\≪\≫\!]', "repl": " "}
+      - {"pattern": '[\:\;\`\ʻ\ː\‘\’\“\→\"\%\‘\”\�\ʽ\ʿ]', "repl": " "}
       - {"pattern": '́', "repl": " "} #used for putting stress on Russian letters
       - {"pattern": '̇', "repl": " "}
       - {"pattern": 'content from google book search google book search generated at ', "repl": " "}

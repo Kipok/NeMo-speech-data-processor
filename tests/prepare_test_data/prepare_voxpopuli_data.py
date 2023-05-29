@@ -16,7 +16,9 @@
 
 import argparse
 import os
+import tarfile
 import shutil
+import tempfile
 from pathlib import Path
 
 if __name__ == "__main__":
@@ -31,22 +33,29 @@ if __name__ == "__main__":
     parser.add_argument("--test_data_folder", required=True, help="Where to place the prepared data")
 
     args = parser.parse_args()
-    target_path = Path(args.test_data_folder)
-    os.makedirs(target_path / "transcribed_data" / args.language_id)
-    for split in ["train", "dev", "test"]:
-        transcript_path = Path(args.data_path) / "transcribed_data" / args.language_id / f"asr_{split}.tsv"
-        with open(transcript_path, "rt", encoding="utf8") as fin, open(
-            target_path / "transcribed_data" / args.language_id / f"asr_{split}.tsv", "wt", encoding="utf8"
-        ) as fout:
-            for idx, line in enumerate(fin):
-                if idx == args.num_entries + 1:
-                    break
-                fout.write(line)
-                if idx == 0:  # skipping header
-                    continue
-                utt_id, raw_text, norm_text, spk_id, _, gender, is_gold_transcript, accent = line.split("\t")
-                year = utt_id[:4]
-                src_audio_path = Path(args.data_path) / "transcribed_data" / args.language_id / year / (utt_id + ".ogg")
-                target_audio_dir = target_path / "transcribed_data" / args.language_id / year
-                os.makedirs(target_audio_dir, exist_ok=True)
-                shutil.copy(src_audio_path, target_audio_dir / (utt_id + ".ogg"))
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        os.makedirs(tmpdir_path / "transcribed_data" / args.language_id)
+
+        for split in ["train", "dev", "test"]:
+            transcript_path = Path(args.data_path) / "transcribed_data" / args.language_id / f"asr_{split}.tsv"
+            with open(transcript_path, "rt", encoding="utf8") as fin, open(
+                tmpdir_path / "transcribed_data" / args.language_id / f"asr_{split}.tsv", "wt", encoding="utf8"
+            ) as fout:
+                for idx, line in enumerate(fin):
+                    if idx == args.num_entries + 1:
+                        break
+                    fout.write(line)
+                    if idx == 0:  # skipping header
+                        continue
+                    utt_id, raw_text, norm_text, spk_id, _, gender, is_gold_transcript, accent = line.split("\t")
+                    year = utt_id[:4]
+                    src_audio_path = Path(args.data_path) / "transcribed_data" / args.language_id / year / (utt_id + ".ogg")
+                    target_audio_dir = tmpdir_path / "transcribed_data" / args.language_id / year
+                    os.makedirs(target_audio_dir, exist_ok=True)
+                    shutil.copy(src_audio_path, target_audio_dir / (utt_id + ".ogg"))
+            # even though the voxpopuli processor expects untarred folder,
+            # we still tar it to save time on the download from s3
+            with tarfile.open(os.path.join(args.test_data_folder, f"transcribed_data.tar.gz"), "w:gz") as tar:
+                # has to be the same as what's before .tar.gz
+                tar.add(tmpdir_path / "transcribed_data", arcname=f"transcribed_data")
