@@ -92,7 +92,7 @@ processors:
     base_dir: ${workspace_dir}
 
   - _target_: sdp.processors.WriteManifest
-    output_manifest_file: ${workspace_dir}/${data_split}_manifest.json
+    output_manifest_file: ${final_manifest}
     fields_to_save:
       - audio_filepath
       - text

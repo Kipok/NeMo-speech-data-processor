@@ -42,6 +42,13 @@ def data_check_fn_mcv(raw_data_dir: str, archive_file_stem: str) -> None:
         raise ValueError(f"No such file {str(expected_file)}")
 
 
+def data_check_fn_voxpopuli(raw_data_dir: str) -> None:
+    """Raises error if do not find expected data"""
+    expected_file = Path(raw_data_dir) / "transcribed_data"
+    if not expected_file.exists():
+        raise ValueError(f"No such file {str(expected_file)}")
+
+
 def get_test_cases():
     """Returns paths, and data check fn for all configs that we want to test."""
 
@@ -51,6 +58,7 @@ def get_test_cases():
             f"{DATASET_CONFIGS_ROOT}/spanish_pc/mcv12/config.yaml",
             partial(data_check_fn_mcv, archive_file_stem="cv-corpus-12.0-2022-12-07-es"),
         ),
+        (f"{DATASET_CONFIGS_ROOT}/italian/voxpopuli/config.yaml", data_check_fn_voxpopuli),
     ]
 
 
