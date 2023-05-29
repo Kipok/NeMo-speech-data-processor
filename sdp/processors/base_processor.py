@@ -38,12 +38,12 @@ class BaseProcessor(ABC):
     """
     Abstract class for SDP processors.
 
-    Args
-    output_manifest_file: path of where the output manifest file will be located.
-    input_manifest_file: path of where the input manifest file is located. This arg
-        is optional - some processors may not take in an input manifest because they
-        need to create an initial manifest from scratch (ie from some transcript file
-        that is in a format different to the NeMo manifest format).
+    Args:
+        output_manifest_file: path of where the output manifest file will be located.
+        input_manifest_file: path of where the input manifest file is located. This arg
+            is optional - some processors may not take in an input manifest because they
+            need to create an initial manifest from scratch (ie from some transcript file
+            that is in a format different to the NeMo manifest format).
     """
 
     def __init__(self, output_manifest_file, input_manifest_file=None):

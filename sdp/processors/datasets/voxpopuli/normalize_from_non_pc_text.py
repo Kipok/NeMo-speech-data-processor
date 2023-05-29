@@ -131,16 +131,3 @@ class NormalizeFromNonPCTextVoxpopuli(ModifyManifestTextProcessor):
         except:
             logger.warning(f"failed to restore normalization for text {data_entry['text']}. Dropping utterance")
             return [DataEntry(data=None)]
-
-
-if __name__ == "__main__":
-    # usage example
-    try:
-        # raw_text = ". So 623 Abc?"
-        raw_text = "¿So, it's ¿ 62.3 Abc Abc?"
-        norm_text = "so it's six two point three abc abc;"
-
-        transcript_text = restore_pc(raw_text, norm_text)
-        print(transcript_text)
-    except:
-        print("Failed to restore punctuation! Skipping utterance")

@@ -38,7 +38,7 @@ class ASRInference(BaseProcessor):
         self, pretrained_model: str, batch_size: int = 32, **kwargs,
     ):
         super().__init__(**kwargs)
-        self.script_path = Path(__file__).parents[1] / "utils" / "transcribe_speech.py"
+        self.script_path = Path(__file__).parents[1] / "nemo" / "transcribe_speech.py"
         self.pretrained_model = pretrained_model
         self.batch_size = batch_size
 
