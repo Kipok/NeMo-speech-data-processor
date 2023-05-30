@@ -27,9 +27,6 @@ processors:
       - {"pattern": "ó", "repl": "o"}
       - {"pattern": "Î", "repl": "I"}
       - {"pattern": "Ó", "repl": "O"}
-      # Fixing any obvious errors, such as ? followed by .
-      - {"pattern": '\?\.', "repl": "?"}
-      - {"pattern": '\.\?', "repl": "."}
     test_cases:
       - {input: {text: "Wow!"}, output: {text: "Wow."}}
 

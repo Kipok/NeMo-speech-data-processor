@@ -286,7 +286,7 @@ def split_text_into_sentences(text: str):
 
     Returns list of sentences
     """
-    # TODO: fill this up?
+    # TODO: should this be filled up and exposed as a parameter?
     lower_case_unicode = ''
     upper_case_unicode = ''
 
@@ -546,7 +546,7 @@ class RestorePCForMLS(BaseProcessor):
 
         logger.info("duration in submanifests (for current datasplit): %.2f hrs", sub_manifest_duration / 60 / 60)
         logger.info(
-            "duration restored (for current datasplit): %.2f hrs (%.2f\%), lost: %.2f hrs",
+            "duration restored (for current datasplit): %.2f hrs (%.2f%%), lost: %.2f hrs",
             restored_manifest_duration / 60 / 60,
             restored_manifest_duration / sub_manifest_duration * 100,
             (sub_manifest_duration - restored_manifest_duration) / 60 / 60,

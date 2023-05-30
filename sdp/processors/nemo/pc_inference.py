@@ -68,8 +68,8 @@ class PCInference(BaseProcessor):
             raise ValueError("pretrained_name and model_path cannot both be not None")
 
     def process(self):
-        import torch
         from nemo.collections.nlp.models import PunctuationCapitalizationModel
+        import torch  # importing after nemo to make sure users just install nemo, instead of torch + nemo
 
         if self.pretrained_name:
             model = PunctuationCapitalizationModel.from_pretrained(self.pretrained_name)

@@ -43,9 +43,6 @@ processors:
       - {"pattern": "ó", "repl": "o"}
       - {"pattern": "Î", "repl": "I"}
       - {"pattern": "Ó", "repl": "O"}
-      # Fixing any obvious errors, such as ? followed by .
-      - {"pattern": '\?\.', "repl": "?"}
-      - {"pattern": '\.\?', "repl": "."}
     test_cases:
       - {input: {text: "Wow!"}, output: {text: "Wow."}}
 
@@ -55,15 +52,16 @@ processors:
       - {input: {text: "test тест 测试"}, output: null}
       - {input: {text: "test"}, output: {text: "test"}}
 
-  - _target_: sdp.processors.DuplicateFields
-    duplicate_fields:
-      "text": "text_no_pc"
-
   # --------------------- only runs in training --------------------------
 
   - _target_: sdp.processors.ASRInference
     pretrained_model: "stt_it_quartznet15x5"
-    output_manifest_file: "${workspace_dir}/${data_split}_manifest1.json"
+    output_manifest_file: "${workspace_dir}/${data_split}_manifest_with_preds.json"
+    should_run: ${subfield:${run_filtering},${data_split}}
+
+  - _target_: sdp.processors.DuplicateFields
+    duplicate_fields:
+      "text": "text_no_pc"
     should_run: ${subfield:${run_filtering},${data_split}}
 
   - _target_: sdp.processors.SubMakeLowercase
